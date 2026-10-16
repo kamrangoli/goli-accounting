@@ -1,0 +1,44 @@
+name: Build Goli Accounting Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile Signed Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Extract Zip and Build
+        run: |
+          ZIP_FILE=$(find . -name "*.zip" -type f | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Extracting $ZIP_FILE..."
+            unzip -q "$ZIP_FILE" -d extracted_project
+            cd extracted_project/*
+          fi
+          
+          GRADLE_PATH=$(find . -name "gradlew" -type f | head -n 1)
+          PROJECT_DIR=$(dirname "$GRADLE_PATH")
+          echo "Found project at: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+          
+      - name: Upload APK as GitHub Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoliAccountingERP-Android-APK
+          path: '**/app/build/outputs/apk/debug/app-debug.apk'
+          retention-days: 30
+          
